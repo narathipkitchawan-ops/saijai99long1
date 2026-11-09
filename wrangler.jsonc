@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "saijai99long1",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-09",
+  "observability": {
+    "enabled": true
+  },
+  "env": {
+    "staging": {
+      "name": "saijai99long1-staging",
+      "vars": {
+        "APP_ENV": "staging"
+      }
+    },
+    "production": {
+      "name": "saijai99long1-production",
+      "vars": {
+        "APP_ENV": "production"
+      }
+    }
+  }
+}
