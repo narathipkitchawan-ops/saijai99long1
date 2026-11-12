@@ -1,7 +1,10 @@
 import { Env } from "./config/env";
+import { recordBreakBulk } from "./handlers/breakBulkHandler";
 import { evaluateEmployeeCheckIn } from "./handlers/hrAttendance";
 import { handlePaymentPostback, handleTextMessage } from "./handlers/orderHandler";
 import { getGoogleAccessToken } from "./services/googleAuth";
+import { renderAttendanceHtml } from "./views/liffAttendance";
+import { renderBreakBulkHtml } from "./views/liffBreakBulk";
 
 interface LineWebhookEvent {
   type?: string;
@@ -70,6 +73,27 @@ export default {
         service: "saijai99long1",
         environment: env.APP_ENV ?? "production",
       });
+    }
+
+    // หน้าจอ LIFF 1: ตอกบัตรพนักงาน GPS + กะกลางวัน/กลางคืน + คิด Pre-shift OT
+    if (request.method === "GET" && (url.pathname === "/liff/attendance" || url.pathname === "/liff/hr")) {
+      return new Response(renderAttendanceHtml(env), {
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      });
+    }
+
+    // หน้าจอ LIFF 2: ปุ่มลัด One-Touch แตกถุงโรงงาน 5/10 กก. หน้าร้าน 24 ชม.
+    if (request.method === "GET" && url.pathname === "/liff/break-bulk") {
+      return new Response(renderBreakBulkHtml(env), {
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      });
+    }
+
+    // Endpoint API สำหรับบันทึกแตกถุงเข้า D1 โดยตรงจากหน้าเว็บ LIFF
+    if (request.method === "POST" && url.pathname === "/api/breakbulk") {
+      const body = (await request.json()) as { sku: string; weightKg: number };
+      await recordBreakBulk(body.sku, body.weightKg, env);
+      return json({ ok: true, sku: body.sku, weightKg: body.weightKg });
     }
 
     // Endpoint สำหรับ LIFF สแกนตอกบัตรเข้างาน (ตรวจกะกลางวัน/กลางคืน + คิด OT 19:30 น.)
