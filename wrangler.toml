@@ -1,0 +1,28 @@
+name = "saijai99-erp-worker"
+main = "src/index.ts"
+compatibility_date = "2025-02-01"
+
+# Cron trigger every 5 minutes for syncing D1 to Google Sheets
+[triggers]
+crons = ["*/5 * * * *"]
+
+# KV namespace for caching tokens and status
+[[kv_namespaces]]
+binding = "SAIJAI_KV"
+id = "16a32b8393534f92bea2ac2ff57ec7bc"
+
+# D1 database for order queue and break bulk queue
+[[d1_databases]]
+binding = "SAIJAI_DB"
+database_name = "saijai99_db"
+database_id = "81266761-fba1-4488-a7a7-b7fbb66b38de"
+
+[vars]
+GOOGLE_SPREADSHEET_ID = "xxx"
+DRIVE_ROOT_SLIPS_FOLDER_ID = "xxx"
+DRIVE_ROOT_LIVESTOCK_FOLDER_ID = "xxx"
+DRIVE_ROOT_VENDORS_FOLDER_ID = "xxx"
+DRIVE_ROOT_HR_CORP_FOLDER_ID = "xxx"
+HQ_LATITUDE = "16.8211"
+HQ_LONGITUDE = "100.2659"
+PROMPTPAY_ID = "xxx"
