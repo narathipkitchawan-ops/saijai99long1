@@ -18,7 +18,8 @@ database_name = "saijai99_db"
 database_id = "81266761-fba1-4488-a7a7-b7fbb66b38de"
 
 [vars]
-GOOGLE_SPREADSHEET_ID = "xxx"
+GOOGLE_SPREADSHEET_ID = "1jX3rayZ7HcIjsv18pHHIswnQZzchp6ZvrOnAxi45CLU"
+GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUzjqTYUyXb8FJQg7oFxXKzdJNpg5MTYMt_-CkLs7D6ajIByRzqoq4yXa772Hg2Krs3Q/exec"
 DRIVE_ROOT_SLIPS_FOLDER_ID = "xxx"
 DRIVE_ROOT_LIVESTOCK_FOLDER_ID = "xxx"
 DRIVE_ROOT_VENDORS_FOLDER_ID = "xxx"

@@ -161,8 +161,26 @@ export default {
 
     if (!pendingOrders.results || pendingOrders.results.length === 0) return;
 
-    // ซิงค์ขึ้น Google Sheets เมื่อตั้งค่า GOOGLE_SPREADSHEET_ID และ Service Account แล้ว
-    if (
+    // ซิงค์ขึ้น Google Sheets ผ่าน Google Apps Script Bridge หรือ Service Account
+    if (env.GOOGLE_APPS_SCRIPT_URL && env.GOOGLE_APPS_SCRIPT_URL !== "xxx") {
+      const orders = pendingOrders.results.map((r) => ({
+        order_id: r.order_id,
+        payment_method: r.payment_method,
+        status: r.status,
+        created_at: r.created_at,
+      }));
+
+      const res = await fetch(env.GOOGLE_APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "SYNC_ORDERS", orders, spreadsheetId: env.GOOGLE_SPREADSHEET_ID }),
+        redirect: "follow",
+      });
+
+      if (!res.ok) {
+        throw new Error(`Google Apps Script sync failed (${res.status}): ${await res.text()}`);
+      }
+    } else if (
       env.GOOGLE_SPREADSHEET_ID &&
       env.GOOGLE_SPREADSHEET_ID !== "xxx" &&
       env.GOOGLE_SERVICE_ACCOUNT_EMAIL &&

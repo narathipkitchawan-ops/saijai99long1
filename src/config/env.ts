@@ -17,8 +17,9 @@ export interface Env {
   GOOGLE_TTS_API_KEY?: string;          // "xxx"
   HR_ADMIN_PASSCODE?: string;
 
-  // Google Sheets & Drive Folder IDs
-  GOOGLE_SPREADSHEET_ID: string;          // "xxx"
+  // Google Sheets & Drive Config
+  GOOGLE_SPREADSHEET_ID: string;
+  GOOGLE_APPS_SCRIPT_URL?: string;
   DRIVE_ROOT_SLIPS_FOLDER_ID: string;     // "xxx"
   DRIVE_ROOT_LIVESTOCK_FOLDER_ID: string; // "xxx"
   DRIVE_ROOT_VENDORS_FOLDER_ID: string;   // "xxx"
