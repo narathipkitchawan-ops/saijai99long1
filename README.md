@@ -7,17 +7,17 @@ This project implements a **Cloudflare Worker** that acts as a webhook endpoint 
 ```mermaid
 flowchart TD
     subgraph User
-        U[LINE User]
+        U["LINE User"]
     end
     subgraph LINE
-        L[LINE Messaging API]
+        L["LINE Messaging API"]
     end
     subgraph Cloudflare
-        CF[Cloudflare Worker]
-        CF -->|invoke Gemini| Gemini[Google AI (Gemini)]
+        CF["Cloudflare Worker"]
+        CF -->|invoke Gemini| Gemini["Google AI (Gemini)"]
     end
     subgraph GitHub
-        GH[GitHub repo (Saijai99long1)]
+        GH["GitHub repo (Saijai99long1)"]
         GH -->|CI/CD| CF
     end
     U -->|send message| L -->|POST /webhook/line| CF
