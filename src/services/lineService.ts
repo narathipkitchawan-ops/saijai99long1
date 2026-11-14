@@ -1,4 +1,5 @@
 import { Env } from "../config/env";
+import { LineMessagingClient } from "./lineSdk";
 
 export interface OrderItemDetail {
   s: string; // SKU or name
@@ -332,60 +333,30 @@ export async function replyOrderSummaryWithPaymentChoices(
     },
   };
 
-  const resp = await fetch("https://api.line.me/v2/bot/message/reply", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({
-      replyToken,
-      messages: [flexMessage],
-    }),
-  });
+  const client = new LineMessagingClient(accessToken);
+  const resp = await client.replyMessage(replyToken, [flexMessage]);
 
   if (!resp.ok) {
-    const errText = await resp.text();
-    console.error("LINE Flex Reply Error:", resp.status, errText);
+    console.error("LINE Flex Reply Error:", resp.status, resp.errorText);
 
     // Fallback ส่งเป็นข้อความตัวหนังสือธรรมดาหากเกิดข้อผิดพลาดกับ Flex Message
-    await fetch("https://api.line.me/v2/bot/message/reply", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
+    await client.replyMessage(replyToken, [
+      {
+        type: "text",
+        text: `✅ สรุปรายการสั่งซื้อ #${orderId}\n${summaryText}\n💰 ยอดรวมสุทธิ: ${totalAmount.toLocaleString()} บาท\n${cutoffNotice}\n\nกรุณาเลือกวิธีชำระเงินด้านล่างค่ะ 👇`,
+        quickReply: flexMessage.quickReply,
       },
-      body: JSON.stringify({
-        replyToken,
-        messages: [
-          {
-            type: "text",
-            text: `✅ สรุปรายการสั่งซื้อ #${orderId}\n${summaryText}\n💰 ยอดรวมสุทธิ: ${totalAmount.toLocaleString()} บาท\n${cutoffNotice}\n\nกรุณาเลือกวิธีชำระเงินด้านล่างค่ะ 👇`,
-            quickReply: flexMessage.quickReply,
-          },
-        ],
-      }),
-    }).catch(console.error);
+    ]).catch(console.error);
   }
 }
 
 export async function replyText(replyToken: string, text: string, env: Env): Promise<void> {
   const accessToken = env.LINE_CHANNEL_ACCESS_TOKEN || "xxx";
-  const resp = await fetch("https://api.line.me/v2/bot/message/reply", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({
-      replyToken,
-      messages: [{ type: "text", text }],
-    }),
-  });
+  const client = new LineMessagingClient(accessToken);
+  const resp = await client.replyMessage(replyToken, [{ type: "text", text }]);
 
   if (!resp.ok) {
-    const errText = await resp.text();
-    console.error("LINE replyText Error:", resp.status, errText);
+    console.error("LINE replyText Error:", resp.status, resp.errorText);
   }
 }
 

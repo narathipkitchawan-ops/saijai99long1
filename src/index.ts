@@ -3,6 +3,7 @@ import { recordBreakBulk } from "./handlers/breakBulkHandler";
 import { evaluateEmployeeCheckIn } from "./handlers/hrAttendance";
 import { handlePaymentPostback, handleTextMessage } from "./handlers/orderHandler";
 import { getGoogleAccessToken } from "./services/googleAuth";
+import { verifySignature } from "./services/lineSdk";
 import { renderAttendanceHtml } from "./views/liffAttendance";
 import { renderBaselineSynthesisHtml } from "./views/liffBaselineSynthesis";
 import { renderBreakBulkHtml } from "./views/liffBreakBulk";
@@ -27,31 +28,6 @@ interface LineWebhookEvent {
 interface LineWebhookBody {
   destination?: string;
   events?: LineWebhookEvent[];
-}
-
-async function verifyLineSignature(
-  rawBody: string,
-  signature: string,
-  channelSecret: string,
-): Promise<boolean> {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(channelSecret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-
-  const digest = await crypto.subtle.sign("HMAC", key, encoder.encode(rawBody));
-  const expected = btoa(String.fromCharCode(...new Uint8Array(digest)));
-
-  if (expected.length !== signature.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < expected.length; i += 1) {
-    mismatch |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
-  }
-  return mismatch === 0;
 }
 
 function json(data: unknown, status = 200): Response {
@@ -132,7 +108,7 @@ export default {
 
       const rawBody = await request.text();
       const signature = request.headers.get("x-line-signature") ?? "";
-      const valid = await verifyLineSignature(rawBody, signature, env.LINE_CHANNEL_SECRET);
+      const valid = await verifySignature(rawBody, signature, env.LINE_CHANNEL_SECRET);
       if (!valid) {
         return json({ ok: false, error: "Invalid LINE signature" }, 401);
       }
