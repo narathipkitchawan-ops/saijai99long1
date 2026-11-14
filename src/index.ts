@@ -97,6 +97,16 @@ export default {
       });
     }
 
+    // Endpoint API สำหรับสั่งซิงค์ D1 ขึ้น Google Sheets แบบ On-Demand ทันที
+    if ((request.method === "GET" || request.method === "POST") && url.pathname === "/api/sync/sheets") {
+      try {
+        const syncResult = await syncD1ToGoogleSheets(env);
+        return json({ ok: true, ...syncResult });
+      } catch (err: any) {
+        return json({ ok: false, error: err.message }, 500);
+      }
+    }
+
     // Endpoint API สำหรับบันทึกแตกถุงเข้า D1 โดยตรงจากหน้าเว็บ LIFF
     if (request.method === "POST" && url.pathname === "/api/breakbulk") {
       const body = (await request.json()) as { sku: string; weightKg: number };
@@ -157,19 +167,32 @@ export default {
    * 2. Cron Trigger รันทุก 5 นาที: กวาดข้อมูลจาก Cloudflare D1 ไปบันทึกลง Google Sheets อัตโนมัติ
    */
   async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
-    const pendingOrders = await env.SAIJAI_DB.prepare(
-      `SELECT id, order_id, payment_method, status, created_at FROM order_outbox WHERE synced = 0 LIMIT 50`,
-    ).all<{
-      id: number;
-      order_id: string;
-      payment_method: string;
-      status: string;
-      created_at: string;
-    }>();
+    await syncD1ToGoogleSheets(env);
+  },
+};
 
-    if (!pendingOrders.results || pendingOrders.results.length === 0) return;
+/**
+ * ฟังก์ชันหลักในการซิงค์ข้อมูลจาก Cloudflare D1 ขึ้นสู่ Google Sheets
+ * ผ่าน Google Apps Script Web App Bridge (รองรับทั้ง Orders และ Break-Bulk)
+ */
+export async function syncD1ToGoogleSheets(
+  env: Env,
+): Promise<{ ordersSynced: number; breakBulkSynced: number }> {
+  let ordersSynced = 0;
+  let breakBulkSynced = 0;
 
-    // ซิงค์ขึ้น Google Sheets ผ่าน Google Apps Script Bridge หรือ Service Account
+  // 1. ซิงค์ตารางคำสั่งซื้อ (order_outbox)
+  const pendingOrders = await env.SAIJAI_DB.prepare(
+    `SELECT id, order_id, payment_method, status, created_at FROM order_outbox WHERE synced = 0 LIMIT 50`,
+  ).all<{
+    id: number;
+    order_id: string;
+    payment_method: string;
+    status: string;
+    created_at: string;
+  }>();
+
+  if (pendingOrders.results && pendingOrders.results.length > 0) {
     if (env.GOOGLE_APPS_SCRIPT_URL && env.GOOGLE_APPS_SCRIPT_URL !== "xxx") {
       const orders = pendingOrders.results.map((r) => ({
         order_id: r.order_id,
@@ -181,39 +204,16 @@ export default {
       const res = await fetch(env.GOOGLE_APPS_SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "SYNC_ORDERS", orders, spreadsheetId: env.GOOGLE_SPREADSHEET_ID }),
+        body: JSON.stringify({
+          action: "SYNC_ORDERS",
+          orders,
+          spreadsheetId: env.GOOGLE_SPREADSHEET_ID,
+        }),
         redirect: "follow",
       });
 
       if (!res.ok) {
-        throw new Error(`Google Apps Script sync failed (${res.status}): ${await res.text()}`);
-      }
-    } else if (
-      env.GOOGLE_SPREADSHEET_ID &&
-      env.GOOGLE_SPREADSHEET_ID !== "xxx" &&
-      env.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
-      env.GOOGLE_SERVICE_ACCOUNT_EMAIL !== "xxx"
-    ) {
-      const accessToken = await getGoogleAccessToken(env);
-      const values = pendingOrders.results.map((r) => [
-        r.order_id,
-        r.payment_method,
-        r.status,
-        r.created_at,
-      ]);
-
-      const sheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${env.GOOGLE_SPREADSHEET_ID}/values/Orders!A:D:append?valueInputOption=USER_ENTERED`;
-      const res = await fetch(sheetUrl, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ values }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Google Sheets append failed (${res.status}): ${await res.text()}`);
+        throw new Error(`Google Apps Script orders sync failed (${res.status}): ${await res.text()}`);
       }
     }
 
@@ -222,5 +222,50 @@ export default {
         .bind(row.id)
         .run();
     }
-  },
-};
+    ordersSynced = pendingOrders.results.length;
+  }
+
+  // 2. ซิงค์ตารางแตกถุงโรงงาน (break_bulk_queue)
+  const pendingBreakBulk = await env.SAIJAI_DB.prepare(
+    `SELECT id, sku, weight_kg, created_at FROM break_bulk_queue WHERE synced = 0 LIMIT 50`,
+  ).all<{
+    id: number;
+    sku: string;
+    weight_kg: number;
+    created_at: string;
+  }>();
+
+  if (pendingBreakBulk.results && pendingBreakBulk.results.length > 0) {
+    if (env.GOOGLE_APPS_SCRIPT_URL && env.GOOGLE_APPS_SCRIPT_URL !== "xxx") {
+      const items = pendingBreakBulk.results.map((r) => ({
+        sku: r.sku,
+        weight_kg: r.weight_kg,
+        created_at: r.created_at,
+      }));
+
+      const res = await fetch(env.GOOGLE_APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          action: "SYNC_BREAK_BULK",
+          items,
+          spreadsheetId: env.GOOGLE_SPREADSHEET_ID,
+        }),
+        redirect: "follow",
+      });
+
+      if (!res.ok) {
+        throw new Error(`Google Apps Script break-bulk sync failed (${res.status}): ${await res.text()}`);
+      }
+    }
+
+    for (const row of pendingBreakBulk.results) {
+      await env.SAIJAI_DB.prepare(`UPDATE break_bulk_queue SET synced = 1 WHERE id = ?`)
+        .bind(row.id)
+        .run();
+    }
+    breakBulkSynced = pendingBreakBulk.results.length;
+  }
+
+  return { ordersSynced, breakBulkSynced };
+}
