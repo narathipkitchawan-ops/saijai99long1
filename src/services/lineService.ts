@@ -6,6 +6,30 @@ export interface OrderItemDetail {
   u: string; // unit (BAG5, BAG10, KG, etc.)
 }
 
+export const SKU_NAMES: Record<string, string> = {
+  CHK_BREAST: "🍗 อกไก่สด",
+  CHK_LEG: "🍗 น่องไก่สด",
+  CHK_HIP: "🍗 สะโพกไก่",
+  CHK_WING: "🍗 ปีกไก่สด",
+  PRK_BELLY: "🥩 หมูสามชั้น",
+  PRK_NECK: "🥩 คอหมูสด",
+};
+
+export const UNIT_NAMES: Record<string, string> = {
+  BAG10: "ถุง 10 กก.",
+  BAG5: "ถุง 5 กก.",
+  KG: "กก.",
+};
+
+export const SKU_PRICES_PER_KG: Record<string, number> = {
+  CHK_BREAST: 75,
+  CHK_LEG: 65,
+  CHK_HIP: 70,
+  CHK_WING: 85,
+  PRK_BELLY: 160,
+  PRK_NECK: 150,
+};
+
 /**
  * ส่งข้อความตอบกลับสรุปออเดอร์ด้วย LINE Flex Message (Bubble Receipt)
  * พร้อมปุ่ม Action เลือกชำระเงิน และ Quick Reply เสริม
@@ -28,30 +52,39 @@ export async function replyOrderSummaryWithPaymentChoices(
 
   // สร้างแถวรายการสินค้าแบบ Flexbox (Horizontal box with baseline alignment)
   const itemRows: unknown[] = items && items.length > 0
-    ? items.map((it) => ({
-        type: "box",
-        layout: "horizontal",
-        alignItems: "baseline",
-        margin: "sm",
-        contents: [
-          {
-            type: "text",
-            text: `• ${it.s}`,
-            size: "sm",
-            color: "#1e293b",
-            flex: 4,
-            wrap: true,
-          },
-          {
-            type: "text",
-            text: `${it.q} ${it.u}`,
-            size: "sm",
-            color: "#64748b",
-            align: "end",
-            flex: 2,
-          },
-        ],
-      }))
+    ? items.map((it) => {
+        const skuLabel = SKU_NAMES[it.s] || `• ${it.s}`;
+        const unitLabel = UNIT_NAMES[it.u] || it.u;
+        const kgMultiplier = it.u === "BAG10" ? 10 : it.u === "BAG5" ? 5 : 1;
+        const pricePerKg = SKU_PRICES_PER_KG[it.s] || 70;
+        const lineTotal = it.q * kgMultiplier * pricePerKg;
+
+        return {
+          type: "box",
+          layout: "horizontal",
+          alignItems: "baseline",
+          margin: "sm",
+          contents: [
+            {
+              type: "text",
+              text: `${skuLabel} x${it.q} (${unitLabel})`,
+              size: "sm",
+              color: "#1e293b",
+              flex: 4,
+              wrap: true,
+            },
+            {
+              type: "text",
+              text: `฿${lineTotal.toLocaleString()}`,
+              size: "sm",
+              color: "#475569",
+              align: "end",
+              weight: "bold",
+              flex: 2,
+            },
+          ],
+        };
+      })
     : summaryText.split("\n").filter(Boolean).map((line) => ({
         type: "box",
         layout: "horizontal",
@@ -209,7 +242,7 @@ export async function replyOrderSummaryWithPaymentChoices(
             height: "sm",
             action: {
               type: "postback",
-              label: "📱 โอนสแกน QR พร้อมเพย์",
+              label: "📱 โอนสแกน QR", // ต้องไม่เกิน 20 ตัวอักษร
               data: `action=PAY_METHOD&method=PROMPTPAY_QR&orderId=${orderId}&amt=${totalAmount}`,
               displayText: "เลือก: โอนเงินผ่าน QR Code พร้อมเพย์",
             },
@@ -220,7 +253,7 @@ export async function replyOrderSummaryWithPaymentChoices(
             height: "sm",
             action: {
               type: "postback",
-              label: "💵 จ่ายเงินสดหน้างาน (COD)",
+              label: "💵 จ่ายเงินสด (COD)", // ต้องไม่เกิน 20 ตัวอักษร
               data: `action=PAY_METHOD&method=COD_CASH&orderId=${orderId}&amt=${totalAmount}`,
               displayText: "เลือก: ชำระเงินสดหน้างานกับพนักงานส่งของ",
             },
@@ -272,7 +305,7 @@ export async function replyOrderSummaryWithPaymentChoices(
           type: "action",
           action: {
             type: "postback",
-            label: "💵 จ่ายสดหน้างาน",
+            label: "💵 จ่ายเงินสด (COD)",
             data: `action=PAY_METHOD&method=COD_CASH&orderId=${orderId}&amt=${totalAmount}`,
             displayText: "เลือก: ชำระเงินสดหน้างานกับพนักงาน",
           },
@@ -299,7 +332,7 @@ export async function replyOrderSummaryWithPaymentChoices(
     },
   };
 
-  await fetch("https://api.line.me/v2/bot/message/reply", {
+  const resp = await fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -310,11 +343,35 @@ export async function replyOrderSummaryWithPaymentChoices(
       messages: [flexMessage],
     }),
   });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    console.error("LINE Flex Reply Error:", resp.status, errText);
+
+    // Fallback ส่งเป็นข้อความตัวหนังสือธรรมดาหากเกิดข้อผิดพลาดกับ Flex Message
+    await fetch("https://api.line.me/v2/bot/message/reply", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        replyToken,
+        messages: [
+          {
+            type: "text",
+            text: `✅ สรุปรายการสั่งซื้อ #${orderId}\n${summaryText}\n💰 ยอดรวมสุทธิ: ${totalAmount.toLocaleString()} บาท\n${cutoffNotice}\n\nกรุณาเลือกวิธีชำระเงินด้านล่างค่ะ 👇`,
+            quickReply: flexMessage.quickReply,
+          },
+        ],
+      }),
+    }).catch(console.error);
+  }
 }
 
 export async function replyText(replyToken: string, text: string, env: Env): Promise<void> {
   const accessToken = env.LINE_CHANNEL_ACCESS_TOKEN || "xxx";
-  await fetch("https://api.line.me/v2/bot/message/reply", {
+  const resp = await fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -325,5 +382,11 @@ export async function replyText(replyToken: string, text: string, env: Env): Pro
       messages: [{ type: "text", text }],
     }),
   });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    console.error("LINE replyText Error:", resp.status, errText);
+  }
 }
+
 

@@ -1,6 +1,10 @@
 import { Env } from "../config/env";
 import { parseOrderWithGemini, tryLocalRegexParse } from "../services/geminiAi";
-import { replyOrderSummaryWithPaymentChoices, replyText } from "../services/lineService";
+import {
+  replyOrderSummaryWithPaymentChoices,
+  replyText,
+  SKU_PRICES_PER_KG,
+} from "../services/lineService";
 import { recordBreakBulk } from "./breakBulkHandler";
 
 export async function handleTextMessage(
@@ -37,18 +41,28 @@ export async function handleTextMessage(
   const aiOrder = await parseOrderWithGemini(userText, env);
   if (aiOrder.intent === "ORDER" && replyToken) {
     const orderId = `SJ-${Date.now().toString().slice(-6)}`;
-    const summaryText = (aiOrder.i || [])
+    const items = aiOrder.i || [];
+    const summaryText = items
       .map((item) => `• ${item.s} จำนวน ${item.q} (${item.u})`)
       .join("\n");
+
+    // คำนวณยอดเงินรวมจากรายการสินค้าตามราคาต่อ กก.
+    let calculatedTotal = 0;
+    for (const item of items) {
+      const pricePerKg = SKU_PRICES_PER_KG[item.s] || 70;
+      const kg = item.u === "BAG10" ? 10 : item.u === "BAG5" ? 5 : 1;
+      calculatedTotal += item.q * kg * pricePerKg;
+    }
+    const finalTotal = calculatedTotal > 0 ? calculatedTotal : 1500;
 
     await replyOrderSummaryWithPaymentChoices(
       replyToken,
       orderId,
       summaryText,
-      1500,
+      finalTotal,
       aiOrder.z || "CITY",
       env,
-      aiOrder.i,
+      items,
     );
   }
 }
