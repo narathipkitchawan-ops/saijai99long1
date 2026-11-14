@@ -31,20 +31,21 @@ export function renderAttendanceHtml(env: Env): string {
     .clock-box { text-align: center; background: #fff5f5; border: 1px solid #fed7d7; border-radius: 12px; padding: 12px; margin-bottom: 16px; }
     .clock { font-size: 32px; font-weight: 700; color: var(--primary); letter-spacing: 1px; }
     .date { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
-    .profile { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 10px; background: #f1f5f9; border-radius: 10px; }
-    .profile img { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--primary); }
-    .profile-info h3 { font-size: 15px; }
-    .profile-info p { font-size: 12px; color: var(--text-muted); word-break: break-all; }
+    .profile { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 12px; background: #f1f5f9; border-radius: 12px; }
+    .profile img { width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--primary); flex-shrink: 0; object-fit: cover; }
+    .profile-info { flex: 1; min-width: 0; }
+    .profile-info h3 { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .profile-info p { font-size: 12px; color: var(--text-muted); word-break: break-all; margin-top: 2px; }
     .form-group { margin-bottom: 14px; }
     label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
     select, input { width: 100%; padding: 12px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 15px; outline: none; transition: border-color 0.2s; }
     select:focus, input:focus { border-color: var(--primary); }
     .ot-banner { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 10px 12px; font-size: 12.5px; color: var(--accent); margin-bottom: 16px; line-height: 1.4; }
-    .gps-status { display: flex; align-items: center; gap: 8px; font-size: 12.5px; padding: 8px 12px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 16px; }
-    .gps-dot { width: 10px; height: 10px; border-radius: 50%; background: #94a3b8; }
-    .gps-dot.green { background: #22c55e; }
-    .gps-dot.red { background: #ef4444; }
-    .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .gps-status { display: flex; align-items: center; gap: 10px; font-size: 12.5px; padding: 10px 12px; border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 16px; }
+    .gps-dot { width: 10px; height: 10px; border-radius: 50%; background: #94a3b8; flex-shrink: 0; }
+    .gps-dot.green { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.6); }
+    .gps-dot.red { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.6); }
+    .btn { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; line-height: 1.2; user-select: none; -webkit-tap-highlight-color: transparent; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-primary:active { background: var(--primary-dark); transform: scale(0.99); }
     .btn-primary:disabled { background: #cbd5e1; cursor: not-allowed; }

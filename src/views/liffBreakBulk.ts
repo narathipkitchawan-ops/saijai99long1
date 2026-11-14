@@ -27,21 +27,25 @@ export function renderBreakBulkHtml(env: Env): string {
 
     .section-title { font-size: 13px; font-weight: 700; color: #cbd5e1; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    .grid-sku { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+    .grid-sku { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 14px; }
     .sku-btn {
-      background: var(--card); border: 2px solid #334155; border-radius: 12px; padding: 14px 10px;
-      color: var(--text); text-align: center; cursor: pointer; transition: all 0.15s ease;
+      background: var(--card); border: 2px solid #334155; border-radius: 14px; padding: 14px 10px;
+      color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 4px; cursor: pointer; transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none; -webkit-tap-highlight-color: transparent;
     }
-    .sku-btn:active, .sku-btn.selected { border-color: #fb923c; background: #2d1d13; box-shadow: 0 0 10px rgba(251,146,60,0.3); }
-    .sku-name { font-size: 16px; font-weight: 700; display: block; margin-bottom: 2px; }
-    .sku-code { font-size: 11px; color: var(--text-muted); font-mono; }
+    .sku-btn:active, .sku-btn.selected { border-color: #fb923c; background: #2d1d13; box-shadow: 0 0 12px rgba(251,146,60,0.35); transform: translateY(-1px); }
+    .sku-name { font-size: 16px; font-weight: 700; line-height: 1.2; text-align: center; }
+    .sku-code { font-size: 11px; color: var(--text-muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.5px; }
 
-    .grid-weight { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+    .grid-weight { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
     .weight-btn {
-      background: var(--card); border: 2px solid #334155; border-radius: 12px; padding: 14px;
-      color: var(--text); text-align: center; font-size: 18px; font-weight: 800; cursor: pointer; transition: all 0.15s ease;
+      background: var(--card); border: 2px solid #334155; border-radius: 14px; padding: 16px;
+      color: var(--text); display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 800; cursor: pointer; transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none; -webkit-tap-highlight-color: transparent;
     }
-    .weight-btn:active, .weight-btn.selected { border-color: #22c55e; background: #0e2e1a; color: #4ade80; }
+    .weight-btn:active, .weight-btn.selected { border-color: #22c55e; background: #0e2e1a; color: #4ade80; box-shadow: 0 0 12px rgba(34,197,94,0.35); transform: translateY(-1px); }
 
     .action-btn {
       width: 100%; padding: 18px; border: none; border-radius: 14px;
@@ -49,14 +53,17 @@ export function renderBreakBulkHtml(env: Env): string {
       color: white; font-size: 18px; font-weight: 800; cursor: pointer;
       box-shadow: 0 4px 14px rgba(234, 88, 12, 0.4);
       display: flex; align-items: center; justify-content: center; gap: 8px;
+      user-select: none; -webkit-tap-highlight-color: transparent;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
     }
     .action-btn:active { transform: scale(0.98); }
     .action-btn:disabled { background: #475569; box-shadow: none; cursor: not-allowed; }
 
-    .history-card { margin-top: 16px; background: var(--card); border-radius: 12px; padding: 12px; }
-    .history-title { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+    .history-card { margin-top: 16px; background: var(--card); border-radius: 12px; padding: 14px; }
+    .history-title { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; }
     .history-list { font-size: 13px; line-height: 1.6; }
-    .history-item { display: flex; justify-content: space-between; border-bottom: 1px solid #334155; padding: 4px 0; }
+    .history-item { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #334155; padding: 8px 0; }
+    .history-item:last-child { border-bottom: none; }
   </style>
 </head>
 <body>
@@ -172,8 +179,9 @@ export function renderBreakBulkHtml(env: Env): string {
       const btn = document.getElementById('btnBreakBulk');
       btn.disabled = true;
 
-      // 1. ส่งเสียง Beep 880Hz ทันที
+      // 1. ส่งเสียง Beep 880Hz ทันที และสั่นตอบสนอง (Haptic)
       playBeep880Hz();
+      if ('vibrate' in navigator) navigator.vibrate(50);
 
       // 2. คำสั่งข้อความสัญลักษณ์ (CMD-BB-SKU-KG)
       const commandText = "CMD-BB-" + selectedSku + "-" + selectedWeight;

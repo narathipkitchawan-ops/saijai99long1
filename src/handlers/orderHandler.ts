@@ -48,6 +48,7 @@ export async function handleTextMessage(
       1500,
       aiOrder.z || "CITY",
       env,
+      aiOrder.i,
     );
   }
 }
