@@ -1,6 +1,11 @@
 name = "saijai99-erp-worker"
 main = "src/index.ts"
 compatibility_date = "2025-02-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Cloudflare Observability & Distributed Logging
+[observability]
+enabled = true
 
 # Cron trigger every 5 minutes for syncing D1 to Google Sheets
 [triggers]
