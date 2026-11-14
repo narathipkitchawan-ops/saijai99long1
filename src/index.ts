@@ -4,6 +4,7 @@ import { evaluateEmployeeCheckIn } from "./handlers/hrAttendance";
 import { handlePaymentPostback, handleTextMessage } from "./handlers/orderHandler";
 import { getGoogleAccessToken } from "./services/googleAuth";
 import { renderAttendanceHtml } from "./views/liffAttendance";
+import { renderBaselineSynthesisHtml } from "./views/liffBaselineSynthesis";
 import { renderBreakBulkHtml } from "./views/liffBreakBulk";
 
 interface LineWebhookEvent {
@@ -85,6 +86,13 @@ export default {
     // หน้าจอ LIFF 2: ปุ่มลัด One-Touch แตกถุงโรงงาน 5/10 กก. หน้าร้าน 24 ชม.
     if (request.method === "GET" && url.pathname === "/liff/break-bulk") {
       return new Response(renderBreakBulkHtml(env), {
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      });
+    }
+
+    // หน้าจอทดสอบ WPT Baseline Synthesis & Flexbox Inspector สำหรับ LINE LIFF
+    if (request.method === "GET" && (url.pathname === "/test/baseline" || url.pathname === "/liff/baseline")) {
+      return new Response(renderBaselineSynthesisHtml(), {
         headers: { "Content-Type": "text/html; charset=utf-8" },
       });
     }
